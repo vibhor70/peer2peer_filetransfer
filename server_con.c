@@ -7,7 +7,7 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT	 8085 
+#define PORT	 8081 
 #define MAXLINE  99999 
 
 int main(){
@@ -31,16 +31,20 @@ if(bind(sockfd,(struct sockaddr*)&serv_addr,sizeof(serv_addr))<0){
  if(lsn<0){
      perror("Error in listening");
  }
+ int pid=0;
+ while(1){
  int clilength = sizeof(cli_addr);
  int clisock = accept(sockfd,(struct sockaddr*)&cli_addr,&(clilength));
  if(clisock < 0){
      printf(" problem in server client socket %s",inet_ntoa(cli_addr.sin_addr));
  }
-
+pid = fork();
+int recvng;
+if(pid == 0){
 FILE *fp1;
-fp1 = fopen("Recv1.mp4","wb");
+fp1 = fopen("Recv.mp4","wb");
 while(1){
-int recvng = recv(clisock,msg,MAXLINE,0);
+ recvng= recv(clisock,msg,MAXLINE,0);
 if(recvng <0){
     perror("Problem in recv");
 }
@@ -51,11 +55,17 @@ break;
 }
 
 recvLen = fwrite(msg,sizeof(char),recvng,fp1);
-    
-}   
-fclose(fp1);
+}    
+}
+
+else
+  {
+   close(newsockfd);//sock is closed BY PARENT
+  }
+
 
 
 printf("Msg from client %lu\n",recvLen);
-
+ }
+ fclose(fp1);
 }
