@@ -1,13 +1,11 @@
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <bits/stdc++.h>
 #include <unistd.h> 
-#include <string.h> 
 #include <sys/types.h> 
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT	 8086
+#define PORT 8085
 #define MAXLINE 1024 
 #define PEER_IP "127.0.0.1"
 
@@ -17,7 +15,7 @@ int main(){
     size_t newLen;
 
     char *source = NULL;
-    FILE *fp = fopen("vibhor.mp4", "rb");
+    FILE *fp = fopen("mrrobot.mkv", "rb");
     if (fp != NULL) {
         /* Go to the end of the file. */
         if (fseek(fp, 0L, SEEK_END) == 0) {
@@ -27,7 +25,7 @@ int main(){
             if (bufsize == -1) { /* Error */ }
 
             /* Allocate our buffer to that size. */
-            source = malloc(sizeof(char) * (bufsize + 1));
+            source = new char[bufsize+1];
 
             /* Go back to the start of the file. */
             if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */ }
@@ -56,7 +54,7 @@ int main(){
     myaddr.sin_port = htons(PORT);
     myaddr.sin_addr.s_addr = inet_addr(PEER_IP);
 
-    if(connect(sockfd,(struct sockaddr*)&myaddr,sizeof(myaddr))<0){
+    if( connect(sockfd,(struct sockaddr*)&myaddr,sizeof(myaddr)) < 0 ){
         perror("connect Failed");
         return 0;
     }

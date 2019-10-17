@@ -1,14 +1,14 @@
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <bits/stdc++.h>
 #include <unistd.h> 
-#include <string.h> 
 #include <sys/types.h> 
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT	 8085
-#define MAXLINE  99999 
+using namespace std;
+
+#define PORT 8085
+#define MAXLINE 99999 
 
 int main(){
     size_t recvLen,newLen = 46258;
@@ -23,7 +23,7 @@ int main(){
     memset (&serv_addr,0,sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
-    serv_addr.sin_addr.s_addr =  htonl(+);
+    serv_addr.sin_addr.s_addr =  htonl(0);
 
     if(bind(sockfd,(struct sockaddr*)&serv_addr,sizeof(serv_addr))<0){
         perror("Bind Failed");
@@ -37,7 +37,7 @@ int main(){
 
     int pid=0;
     while(1){
-        int clilength = sizeof(cli_addr);
+        socklen_t clilength = sizeof(cli_addr);
         int clisock = accept(sockfd,(struct sockaddr*)&cli_addr,&(clilength));
         if(clisock < 0){
             printf(" problem in server client socket %s",inet_ntoa(cli_addr.sin_addr));
