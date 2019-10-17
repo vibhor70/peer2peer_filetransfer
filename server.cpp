@@ -4,15 +4,71 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
+#include <netdb.h> 
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <fstream>
+#include <sstream>
+#include "pwd.cpp"
+
 
 using namespace std;
 
 #define PORT 8085
-#define MAXLINE 99999 
+#define BUFFERSIZE 99999 
+
+
+string handleNewPeer(char* ipAddr){
+    string line;
+    ofstream outfile("peers.txt");
+    if(outfile.fail()){
+        cout<<"file open fail"<<endl;
+        exit(-1);
+    } else{
+        cout<<"file open success"<<endl;
+    }
+    
+    ifstream infile("peers.txt");
+
+    // check if the ip already exists
+    bool isFound = false;
+    string ipAddrString(ipAddr);
+
+    string allIPadress;
+    while (getline(infile, line)){
+        if((line.compare(ipAddrString)) == 0){ //
+            isFound = true;
+        }
+        else{
+            allIPadress += line + '\n';
+        }
+    }
+    if(!isFound){
+        outfile << ipAddrString; 
+    }
+    return allIPadress;
+}
+
+string getSharedDir(){
+    string mySharedDir;
+    DIR *dp;
+    cout << "Please enter your shared directory path: ";
+    cin >> mySharedDir;
+    dp = opendir(mySharedDir.c_str());
+    if (dp == NULL) {
+        cout << "Error " << errno << " while trying opening" << mySharedDir << endl;
+        exit(-1);
+    } 
+    return mySharedDir;
+}
+
+
 
 int main(){
     size_t recvLen,newLen = 46258;
-    char msg[MAXLINE];
+    char BUFFER[BUFFERSIZE];
     int sockfd;
     FILE *fp1;
 
@@ -49,26 +105,53 @@ int main(){
             close(clisock);
             continue;
         }
-        else if(pid == 0){
-            //child
-            char fname[100];
-            // getchar();
-            // cout << "Enter file name: ";
-            // cin >> fname;
-            fp1 = fopen("fname.mp4","wb");
+        else if(pid == 0){ //child
+            // recv(clisock, buffer, BUFFERSIZE, 0);  //ip address
+
+            string mySharedDir = getSharedDir();
+            vector<string> ignore = buildIgnoreVector();
+            printDirectoryStructure(mySharedDir, "│", ignore);
+            const char* dirStr = directoryStructure.c_str();
+
+            if( send(clisock,directoryStructure.c_str(),directoryStructure.length(), 0) < 0 ){
+                perror("Send to failed");
+                return 0;
+            }
+            
+            recv(sockfd, BUFFER, BUFFERSIZE, 0);  
+            
+            DIR *dp;
+            string sBuffer(BUFFER);
+            string fullPath = mySharedDir + sBuffer; 
+
+            /* TODO
+                CHECK FOR PROPER PATH
+            */ 
+            
+            dp = opendir(fullPath.c_str());
+            if (dp == NULL) {
+                cout << "Error " << errno << " while trying opening" << fullPath << endl;
+                exit(-1);
+            }
+            cout << "Path entered was: " << fullPath << endl;
+
+
+            // CHECK THE PATH
+
+            fp1 = fopen(fullPath.c_str(), "wb");
             int totalSize = 0;
             while(1){
-                recvng= recv(clisock,msg,MAXLINE,0);
+                recvng= recv(clisock,BUFFER,BUFFERSIZE,0);
                 totalSize += recvng;
                 if(recvng < 0){
                     perror("Problem in recv");
                     break;
                 }
                 else if(recvng == 0){ 
-                    recvLen = fwrite(msg,sizeof(char),recvng,fp1);
+                    recvLen = fwrite(BUFFER,sizeof(char),recvng,fp1);
                     break;
                 }
-                recvLen = fwrite(msg,sizeof(char),recvng,fp1);
+                recvLen = fwrite(BUFFER,sizeof(char),recvng,fp1);
             }
             cout << "Total size" << totalSize << endl;  
             close(clisock);
@@ -76,12 +159,15 @@ int main(){
         }
 
         else if(pid > 0) { //parent
+            // recieve a ip from new client
+
+
             close(clisock);
             // counter++;
             continue;
         }
 
-        printf("Msg from client %lu\n",recvLen);
+        printf("BUFFER from client %lu\n",recvLen);
     }
     
     fclose(fp1);

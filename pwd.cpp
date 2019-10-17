@@ -31,7 +31,8 @@ void printDirectoryStructure(string dir, string prefix, vector<string>& ignore) 
 
         string nameString(dirp->d_name);
 
-        if(std::find(ignore.begin(), ignore.end(), nameString) != ignore.end() || std::find(ignore.begin(), ignore.end(), filepath) != ignore.end()) {
+        if(std::find(ignore.begin(), ignore.end(), nameString) != ignore.end() || 
+            std::find(ignore.begin(), ignore.end(), filepath) != ignore.end()) {
             continue;
         } else {
             string tmpprefix = prefix;
