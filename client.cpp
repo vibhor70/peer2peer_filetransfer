@@ -5,14 +5,41 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include "pwd.cpp"
+
 #define PORT 8085
 #define MAXLINE 1024 
 #define PEER_IP "127.0.0.1"
 
+string getSharedDir(){
+    string mySharedDir;
+    DIR *dp;
+    cout << "Please enter your shared directory path: ";
+    cin >> mySharedDir;
+    dp = opendir(mySharedDir.c_str());
+    if (dp == NULL) {
+        cout << "Error " << errno << " while trying opening" << mySharedDir << endl;
+        exit(-1);
+    } 
+    return mySharedDir;
+}
+
+
 int main(){
+    string mySharedDir = getSharedDir();
+    vector<string> ignore = buildIgnoreVector();
+    printDirectoryStructure(mySharedDir, "│", ignore);
+    cout << directoryStructure << endl;
+    // const char* dirStr = directoryStructure.c_str();
+
     int sockfd;
     struct  sockaddr_in myaddr;
     size_t newLen;
+
 
     char *source = NULL;
     FILE *fp = fopen("bbt.mp4", "rb");
