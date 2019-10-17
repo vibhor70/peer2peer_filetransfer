@@ -8,6 +8,15 @@
 #define PORT 8085 
 #define MAXLINE 99999 
 
+
+// class Server(){
+//     Server(){
+//     }
+//     void createSocket(){
+//     }
+// };
+
+
 int main(){
     size_t recvLen,newLen = 46258;
     char msg[MAXLINE];

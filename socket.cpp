@@ -15,7 +15,7 @@ int main(){
     size_t newLen;
 
     char *source = NULL;
-    FILE *fp = fopen("mrrobot.mkv", "rb");
+    FILE *fp = fopen("bbt.mp4", "rb");
     if (fp != NULL) {
         /* Go to the end of the file. */
         if (fseek(fp, 0L, SEEK_END) == 0) {
@@ -63,7 +63,6 @@ int main(){
     int no = newLen/offset;
     int remain = newLen%offset;
     while(i<no){
-
         if(send(sockfd,(source+j),offset,0)<0){
             perror("Send to failed");
             return 0;
