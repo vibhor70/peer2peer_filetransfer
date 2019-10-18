@@ -6,7 +6,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include "os.h"
 using namespace std;
+
+
+ 
 
 
 string directoryStructure = "";
@@ -27,7 +31,12 @@ void printDirectoryStructure(string dir, string prefix, vector<string>& ignore) 
 
     while (dirp = readdir(dp)) {
 
-        filepath = dir + "/" + dirp->d_name;
+        #ifdef OS_Windows
+            filepath = dir + "\\" + dirp->d_name;
+        #else
+            filepath = dir + "/" + dirp->d_name;
+        #endif   
+        
 
         string nameString(dirp->d_name);
 

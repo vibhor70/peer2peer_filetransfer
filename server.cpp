@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include "pwd.cpp"
+#include "os.h"
 
 
 using namespace std;
@@ -57,17 +58,20 @@ string getSharedDir(){
     cout << "Please enter your shared directory path: ";
     cin >> mySharedDir;
 
-    while(mySharedDir.length() == 0){
+    while(!mySharedDir.length()){
         cout << "You have not entered the path" << endl;
         cout << "Please enter your shared directory path: ";
         cin >> mySharedDir;
+        if(mySharedDir.length() > 0){
+            dp = opendir(mySharedDir.c_str());
+            if (dp == NULL) {
+                cout << "Error " << errno << " while trying opening" << mySharedDir << endl;
+            }
+            else
+                break;
+        }
     }
 
-    dp = opendir(mySharedDir.c_str());
-    if (dp == NULL) {
-        cout << "Error " << errno << " while trying opening" << mySharedDir << endl;
-        exit(-1);
-    } 
     return mySharedDir;
 }
 
@@ -76,6 +80,60 @@ void dieError(const char* msg){
     exit(-1);
 }
 
+
+bool sendFile(string fullPath, int clisock, int lsn){
+    char *source = NULL;
+    size_t newLen;
+    FILE *fp = fopen(fullPath.c_str(), "rb");
+
+    if (fp < 0) {
+        /* failure */
+        if (errno == EEXIST) {
+            cout << "Error " << errno << " while trying accessing " << fullPath << endl;
+            return false;                
+        }
+    }
+    else {
+        /* Go to the end of the file. */
+        if (fseek(fp, 0L, SEEK_END) == 0) {
+            /* Get the size of the file. */
+            long bufsize = ftell(fp);
+            if (bufsize == -1) { /* Error */ }
+            /* Allocate our buffer to that size. */
+            source = new char[bufsize+1];
+            /* Go back to the start of the file. */
+            if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */ }
+            /* Read the entire file into memory. */
+            newLen = fread(source, sizeof(char), bufsize, fp);
+            if ( ferror( fp ) != 0 ) {
+                fputs("Error reading file", stderr);
+            } else {
+                source[newLen++] = '\0'; /* Just to be safe. */
+            }
+        }
+        printf("Total length of the file: %lu\n",newLen);
+        fclose(fp);
+    }
+
+    int i=0,j=0,offset = OFFSET;
+    int no = newLen/offset;
+    int remain = newLen%offset;
+    while(i<no){
+        if(send(clisock,(source+j),offset,0)<0){
+            perror("Send to failed");
+            return false;
+        }
+        j+=offset;
+        i++;
+    }
+    if(send(clisock,source+j,remain,0)<0){
+        perror("Send to failed");
+        return 0;
+    }
+
+    return true;
+
+}
 
 int main(){
     size_t newLen = 46258, recvLen;
@@ -102,10 +160,13 @@ int main(){
 
     int pid=0;
     string mySharedDir = "";
-
+    mySharedDir = getSharedDir();
+    cout << "Listening from clients..." << endl;
     while(1){
         socklen_t clilength = sizeof(cli_addr);
         int clisock = accept(sockfd,(struct sockaddr*)&cli_addr,&(clilength));
+        char *ip = inet_ntoa(cli_addr.sin_addr);
+        printf("New client with IP address: %s is connected\n", ip);
 
         if(clisock < 0){
             printf(" problem in server client socket %s",inet_ntoa(cli_addr.sin_addr));
@@ -116,77 +177,33 @@ int main(){
             continue;
         }
         else if(pid == 0){ //child
-
             // directoryStructure == global var
-            if(mySharedDir.length() == 0){
-                mySharedDir = getSharedDir();
-                vector<string> ignore = buildIgnoreVector();
-                printDirectoryStructure(mySharedDir, "│", ignore);
-            }
+            vector<string> ignore = buildIgnoreVector();
+            printDirectoryStructure(mySharedDir, "│", ignore);
 
             if(send(clisock,directoryStructure.c_str(),directoryStructure.length(), 0) < 0){
                 perror("Send to failed");
                 return 0;
             }
 
-            // recieve the file path     
+            // receive the file path     
             BUFFER = new char[1000];       
             recv(clisock, BUFFER, 1000, 0);  
 
-            // DIR *dp;
             string sBuffer(BUFFER);
-            string fullPath = mySharedDir + '/' + sBuffer; 
+
+            #ifdef OS_Windows
+                string fullPath = mySharedDir + "\\" + sBuffer; 
+            #else
+                string fullPath = mySharedDir + "/" + sBuffer; 
+            #endif   
+
             delete BUFFER;
 
-
-            cout << "Path entered was: " << fullPath << endl;
-            char *source = NULL;
-            size_t newLen;
-            FILE *fp = fopen(fullPath.c_str(), "rb");
-
-            if (fp < 0) {
-                /* failure */
-                if (errno == EEXIST) {
-                    cout << "Error " << errno << " while trying accessing " << fullPath << endl;
-                    return 0;                
-                }
-            }
-            else {
-                /* Go to the end of the file. */
-                if (fseek(fp, 0L, SEEK_END) == 0) {
-                    /* Get the size of the file. */
-                    long bufsize = ftell(fp);
-                    if (bufsize == -1) { /* Error */ }
-                    /* Allocate our buffer to that size. */
-                    source = new char[bufsize+1];
-                    /* Go back to the start of the file. */
-                    if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */ }
-                    /* Read the entire file into memory. */
-                    newLen = fread(source, sizeof(char), bufsize, fp);
-                    if ( ferror( fp ) != 0 ) {
-                        fputs("Error reading file", stderr);
-                    } else {
-                        source[newLen++] = '\0'; /* Just to be safe. */
-                    }
-                }
-                printf("Total length of the file: %lu\n",newLen);
-                fclose(fp);
-            }
-
-            int i=0,j=0,offset = OFFSET;
-            int no = newLen/offset;
-            int remain = newLen%offset;
-            while(i<no){
-                if(send(clisock,(source+j),offset,0)<0){
-                    perror("Send to failed");
-                    return 0;
-                }
-                j+=offset;
-                i++;
-            }
-            if(send(clisock,source+j,remain,0)<0){
-                perror("Send to failed");
-                return 0;
+            cout << "Client wants to access path: " << fullPath << endl;
+            bool res = sendFile(fullPath, clisock, lsn);
+            if(!res){
+                dieError("Error in sending the file");
             }
             close(clisock);
             close(lsn);

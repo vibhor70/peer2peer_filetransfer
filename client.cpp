@@ -39,7 +39,7 @@ int main(){
     myaddr.sin_port = htons(PORT);
     myaddr.sin_addr.s_addr = inet_addr(ip.c_str());
 
-    cout << "Please enter your IP address ";
+    cout << "Please enter your IP address: ";
     cin >> ip;
 
     /* connect with the network */
@@ -68,20 +68,15 @@ int main(){
     }
     reverse(fileName.begin(), fileName.end());
 
-    // DIR* dp = opendir(fileName.c_str());
-    // if (dp == NULL) {
-    //     fileName = [1] + fileName;
-    // }
-    cout << fileName << endl;
-    
     int totalSize = 0, received;
-    fileName = '[' + to_string(fdup++) + ']' + fileName;
+    fileName = "[" + to_string(fdup++) + "]" + fileName;
+    cout << fileName << endl;
+
     FILE *fp = fopen(fileName.c_str(), "wb");
     if (fp < 0) {
         /* failure */
         if (errno == EEXIST) {
             cout << "Error " << errno << " while trying accessing " << fileName << endl;
-            // return 0;    
             exit(-1);            
         }
     }
