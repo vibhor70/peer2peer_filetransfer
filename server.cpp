@@ -17,8 +17,8 @@
 using namespace std;
 
 #define PORT 8069
-#define BUFFERSIZE 99999 
-#define OFFSET 40000
+#define BUFFERSIZE 9999 
+#define OFFSET 4000
 
 string handleNewPeer(char* ipAddr){
     string line;
@@ -169,7 +169,7 @@ int main(){
                         source[newLen++] = '\0'; /* Just to be safe. */
                     }
                 }
-                printf("Total length of the file: %lu",newLen);
+                printf("Total length of the file: %lu\n",newLen);
                 fclose(fp);
             }
 
@@ -188,8 +188,7 @@ int main(){
                 perror("Send to failed");
                 return 0;
             }
-
-            close(sockfd);
+            close(clisock);
             close(lsn);
         }
 

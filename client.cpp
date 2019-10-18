@@ -11,8 +11,8 @@
 #include <errno.h>
 
 #define PORT 8069
-#define BUFFERSIZE 99999
-#define OFFSET 40000
+#define BUFFERSIZE 9999
+#define OFFSET 4000
 #define PEER_IP "127.0.0.1"
 
 using namespace std;
@@ -21,7 +21,7 @@ int main(){
     int sockfd;
     struct  sockaddr_in myaddr;
     size_t recvLen;
-
+    int fdup = 1;
     char BUFFER[BUFFERSIZE];
 
     if((sockfd = socket(PF_INET,SOCK_STREAM,0))<0){
@@ -75,9 +75,19 @@ int main(){
     cout << fileName << endl;
     
     int totalSize = 0, received;
+    fileName = '[' + to_string(fdup++) + ']' + fileName;
     FILE *fp = fopen(fileName.c_str(), "wb");
+    if (fp < 0) {
+        /* failure */
+        if (errno == EEXIST) {
+            cout << "Error " << errno << " while trying accessing " << fileName << endl;
+            // return 0;    
+            exit(-1);            
+        }
+    }
+    cout << "FIlename write starts" << endl;
     while(1){
-        received= recv(sockfd,BUFFER,BUFFERSIZE,0);
+        received = recv(sockfd, BUFFER, BUFFERSIZE, 0);
         totalSize += received;
         if(received < 0){
             perror("Problem in recv");
@@ -87,8 +97,8 @@ int main(){
             recvLen = fwrite(BUFFER,sizeof(char),received,fp);
             break;
         }
-        recvLen = fwrite(BUFFER,sizeof(char),received,fp);
-    }
+        recvLen = fwrite(BUFFER, sizeof(char), received, fp);
+    } // end of while
     cout << "Total size" << totalSize << endl;  
 
     close(sockfd);
