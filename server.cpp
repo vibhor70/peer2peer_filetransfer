@@ -1,36 +1,14 @@
-#include <bits/stdc++.h>
-#include <unistd.h> 
-#include <sys/types.h> 
-#include <sys/socket.h> 
-#include <arpa/inet.h> 
-#include <netinet/in.h> 
-#include <netdb.h> 
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <fstream>
-#include <sstream>
-#include "pwd.cpp"
-#include "os.h"
-
+#include "commons.h"
 
 using namespace std;
-
-#define PORT 8071
-#define BUFFERSIZE 100000 
-#define OFFSET 4000
 
 string handleNewPeer(char* ipAddr){
     string line;
     ofstream outfile("peers.txt");
     if(outfile.fail()){
-        cout<<"file open fail"<<endl;
         exit(-1);
-    } else{
-        cout<<"file open success"<<endl;
     }
-    
+
     ifstream infile("peers.txt");
 
     // check if the ip already exists
@@ -116,7 +94,6 @@ bool sendFile(string fullPath, int clisock, int lsn){
                 source[newLen++] = '\0'; /* Just to be safe. */
             }
         }
-        printf("Total size of the file transfered: %lu\nkB", newLen/1000);
         fclose(fp);
     }
 
@@ -135,6 +112,8 @@ bool sendFile(string fullPath, int clisock, int lsn){
         perror("Send to failed");
         return 0;
     }
+    printf("Total size of the file transferred: %0.2f kB \n", newLen*1.0/1000);
+
     return true;
 }
 
@@ -171,6 +150,7 @@ int main(){
         socklen_t clilength = sizeof(cli_addr);
         int clisock = accept(sockfd,(struct sockaddr*)&cli_addr,&(clilength));
         char *ip = inet_ntoa(cli_addr.sin_addr);
+        handleNewPeer(ip);
         printf("New client with IP address: %s is connected\n", ip);
 
         if(clisock < 0){
@@ -214,11 +194,20 @@ int main(){
             string buffer;
             bool isLastPacket;
             int bufsize;
-
+            // while(true){
             bool res = sendFile(fullPath, clisock, lsn);
             if(!res){
                 dieError("Error in sending the file");
             }
+                // BUFFER = new char[10];
+                // cout << "Test" << endl;     
+                // recv(clisock, BUFFER, 10, 0); 
+                // if(strcmp(BUFFER, "y") == 0 || strcmp(BUFFER, "Y") == 0)
+                //     cout << "Client wants to download new file again" << endl;
+                // else
+                //     break;
+            // }
+
 
             close(clisock);
             close(lsn);
