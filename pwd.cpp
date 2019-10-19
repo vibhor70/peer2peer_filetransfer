@@ -13,10 +13,10 @@ using namespace std;
  
 
 
-string directoryStructure = "";
+string dirStructure= "";
 
 
-void printDirectoryStructure(string dir, string prefix, vector<string>& ignore) {
+void getDirectoryStructure(string dir, string prefix, vector<string>& ignore) {
     string filepath;
     DIR *dp;
     struct dirent *dirp;
@@ -46,7 +46,7 @@ void printDirectoryStructure(string dir, string prefix, vector<string>& ignore) 
         } else {
             string tmpprefix = prefix;
             tmpprefix.replace(tmpprefix.size()-3, 3, "├─");
-            directoryStructure += tmpprefix + dirp->d_name + "\n";
+            dirStructure += tmpprefix + dirp->d_name + "\n";
         }
 
         if (stat(filepath.c_str(), &filestat)) {
@@ -54,7 +54,7 @@ void printDirectoryStructure(string dir, string prefix, vector<string>& ignore) 
         }
 
         if (S_ISDIR(filestat.st_mode)) {
-            printDirectoryStructure(filepath, prefix + "   │", ignore);
+            getDirectoryStructure(filepath, prefix + "   │", ignore);
         }
 
     }

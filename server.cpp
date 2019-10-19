@@ -17,8 +17,8 @@
 
 using namespace std;
 
-#define PORT 8069
-#define BUFFERSIZE 9999 
+#define PORT 8071
+#define BUFFERSIZE 100000 
 #define OFFSET 4000
 
 string handleNewPeer(char* ipAddr){
@@ -81,6 +81,7 @@ void dieError(const char* msg){
 }
 
 
+
 bool sendFile(string fullPath, int clisock, int lsn){
     char *source = NULL;
     size_t newLen;
@@ -92,6 +93,10 @@ bool sendFile(string fullPath, int clisock, int lsn){
             cout << "Error " << errno << " while trying accessing " << fullPath << endl;
             return false;                
         }
+    }
+    else if(fp == NULL){
+        cout << "fp=Null Error " << errno << " while trying accessing " << fullPath << endl;
+        dieError("Error in opening file");
     }
     else {
         /* Go to the end of the file. */
@@ -111,7 +116,7 @@ bool sendFile(string fullPath, int clisock, int lsn){
                 source[newLen++] = '\0'; /* Just to be safe. */
             }
         }
-        printf("Total length of the file: %lu\n",newLen);
+        printf("Total size of the file transfered: %lu\nkB", newLen/1000);
         fclose(fp);
     }
 
@@ -130,16 +135,14 @@ bool sendFile(string fullPath, int clisock, int lsn){
         perror("Send to failed");
         return 0;
     }
-
     return true;
-
 }
 
+
 int main(){
-    size_t newLen = 46258, recvLen;
+    size_t recvLen;
     char* BUFFER;
     int sockfd;
-    FILE *fp1;
 
     struct sockaddr_in serv_addr,cli_addr;
     if((sockfd = socket(PF_INET,SOCK_STREAM,0))<0){
@@ -160,7 +163,9 @@ int main(){
 
     int pid=0;
     string mySharedDir = "";
-    mySharedDir = getSharedDir();
+    mySharedDir = getSharedDir(); 
+    // mySharedDir = "/home/jai/Desktop/projects/peer2peer_filetransfer";
+    
     cout << "Listening from clients..." << endl;
     while(1){
         socklen_t clilength = sizeof(cli_addr);
@@ -169,7 +174,7 @@ int main(){
         printf("New client with IP address: %s is connected\n", ip);
 
         if(clisock < 0){
-            printf(" problem in server client socket %s",inet_ntoa(cli_addr.sin_addr));
+            printf("Problem in server client socket %s\n",inet_ntoa(cli_addr.sin_addr));
         }
 
         if ((pid = fork()) == -1){
@@ -177,34 +182,44 @@ int main(){
             continue;
         }
         else if(pid == 0){ //child
-            // directoryStructure == global var
+            // dirStr == global var
             vector<string> ignore = buildIgnoreVector();
-            printDirectoryStructure(mySharedDir, "│", ignore);
+            getDirectoryStructure(mySharedDir, "│", ignore);
 
-            if(send(clisock,directoryStructure.c_str(),directoryStructure.length(), 0) < 0){
+            if(send(clisock,dirStructure.c_str(),dirStructure.length(), 0) < 0){
                 perror("Send to failed");
                 return 0;
             }
 
             // receive the file path     
-            BUFFER = new char[1000];       
-            recv(clisock, BUFFER, 1000, 0);  
+            BUFFER = new char[2000];       
+            recv(clisock, BUFFER, 2000, 0);  
 
             string sBuffer(BUFFER);
-
-            #ifdef OS_Windows
-                string fullPath = mySharedDir + "\\" + sBuffer; 
-            #else
-                string fullPath = mySharedDir + "/" + sBuffer; 
-            #endif   
-
             delete BUFFER;
+            string fullPath;
+            if(mySharedDir.back() != '/' && mySharedDir.back() != '\\'){
+                #ifdef OS_Windows
+                    fullPath = mySharedDir + "\\" + sBuffer; 
+                #else
+                    fullPath = mySharedDir + "/" + sBuffer; 
+                #endif   
+            }
+            else{
+                fullPath = mySharedDir + sBuffer; 
+            }
+            cout << "Client wants to download path: " << fullPath << endl;
 
-            cout << "Client wants to access path: " << fullPath << endl;
+
+            string buffer;
+            bool isLastPacket;
+            int bufsize;
+
             bool res = sendFile(fullPath, clisock, lsn);
             if(!res){
                 dieError("Error in sending the file");
             }
+
             close(clisock);
             close(lsn);
         }
@@ -212,13 +227,10 @@ int main(){
         else if(pid > 0) { //parent
             // receive a ip from new client
             close(clisock);
-            // counter++;
             continue;
         }
 
-        printf("BUFFER from client %lu\n",recvLen);
     } // end of while
     
-    fclose(fp1);
     return 0;
 }
